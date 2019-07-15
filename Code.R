@@ -2,7 +2,7 @@
 #dataset<-read.csv(file="~/desktop/HMM_Dissertation/rainySample.csv")
 
 dataset<-matrix()
-dataset$obs<-matrix(c(1,0,1,1), nrow=4, ncol=1)
+dataset$obs<-matrix(c(1,1,1), nrow=3, ncol=1)
 
 #Generating a dataset
 #States

@@ -1,5 +1,5 @@
 #Arguments 
-gamma_mat<-matrix(c(0.8, 0.2, 0.4, 0.6), nrow=2, ncol=2, byrow=TRUE)
+    #gamma_mat<-matrix(c(0.8, 0.2, 0.4, 0.6), nrow=2, ncol=2, byrow=TRUE)
 dataset<-read.csv("LambdaTenLambdaTwenty_2.csv")
 #exp(log_parameter_vec)<-c(10,20)
 
@@ -9,6 +9,21 @@ make.NegLogLik<-function(par){
   #   gamma_mat<-matrix(gamma_mat, nrow=2, ncol=2, byrow=TRUE)
   # }
   log_parameter_vec<-matrix(c(par[1], par[2]), nrow=1, ncol=2, byrow=TRUE)
+  w_gamma_mat<- matrix(c(par[3], par[4], par[5],par[6]), nrow=2, ncol=2, byrow=TRUE)
+  
+  gamma_mat<-matrix(0L, nrow=2, ncol=2)
+  for (i in c(1:2)){
+    for (j in c(1:2)){
+      if (i!=j){
+        gamma_mat[i, j]<- exp(w_gamma_mat[i, j])/(1+sum(exp(w_gamma_mat[i,-i])))
+      }
+      else{
+        gamma_mat[i,i]<- 1/(1+sum(exp(w_gamma_mat[i,-i])))
+      }
+    }
+  }
+  
+  parameter_vec<-exp(log_parameter_vec)
   #Returns stationary distribution 
   stationary_dist<-function(gamma_mat){
     eigen(t(gamma_mat))[[2]][,which.min(abs(1-eigen(gamma_mat)[[1]]))]/sum(eigen(t(gamma_mat))[[2]][,which.min(abs(1-eigen(gamma_mat)[[1]]))])
@@ -25,16 +40,16 @@ make.NegLogLik<-function(par){
   ################################################################################
   #FUNCTIONS
   #returns emission matrix with diagonal entries being P(X |State)
-  a<-matrix(0L, nrow =length(exp(log_parameter_vec)), ncol=length(exp(log_parameter_vec)))
-  emissionmat <- function(obs){
-    for (j in c(1:length(exp(log_parameter_vec)))){
-      a[j,j]<- dpois(obs, exp(log_parameter_vec)[j])  
-      # matrix(c(dpois(obs, lambda_1), 0, 0, dpois(obs, lambda_2)), nrow=2, ncol=2, byrow=FALSE)
-      # matrix(c(dbern(obs, 0.9), 0, 0, dbern(obs, 0.3)), nrow=2, ncol=2, byrow=FALSE)
+    a<-matrix(0L, nrow =length(parameter_vec), ncol=length(parameter_vec))
+    emissionmat <- function(obs){
+      for (j in c(1:length(parameter_vec))){
+        a[j,j]<- dpois(obs, parameter_vec[j])  
+        # matrix(c(dpois(obs, lambda_1), 0, 0, dpois(obs, lambda_2)), nrow=2, ncol=2, byrow=FALSE)
+        # matrix(c(dbern(obs, 0.9), 0, 0, dbern(obs, 0.3)), nrow=2, ncol=2, byrow=FALSE)
+      }
+      a
     }
-    a
-  }
-  
+    
   #Returns -inf if NaN
   NaNtoInf<-function(difference){
     if (is.nan(difference) == TRUE)
@@ -104,25 +119,38 @@ make.NegLogLik<-function(par){
   }
   -sum(log_alpha_dataframe[time,])
 }
-exp(optim(par=c(2.1,2), fn=make.NegLogLik)$par)
+
+param<-optim(par=c(log(22),log(10), log(1), log(0.2/0.8), log(0.4/0.6), log(1)), fn=make.NegLogLik)$par
+
+exp(param[1])
+exp(param[2])
+1/(1+exp(param[3]))
+exp(param[3])/(1+exp(param[3]))
+
+1/(1+exp(param[5]))
+exp(param[5])/(1+exp(param[5]))
 
 
-out<-list()
-about_smean<-c(0,0)
-estimate<-data.frame(matrix(0L, nrow=1, ncol=2))
 
-for (j in c(1:10)){
-   about_smean[1]<- rnorm(1, mean = log(mean(dataset$obs)), sd=2)
-   about_smean[2]<- rnorm(1, mean = log(mean(dataset$obs)), sd=2)
-  
-  #about_smean[1]<- runif(1, min = log(mean(dataset$obs))/2, max = 3*log(mean(dataset$obs))/2)
-  #about_smean[2]<- runif(1, min = log(mean(dataset$obs))/2, max = 3*log(mean(dataset$obs))/2)
-  
-  estimate[j,]<-exp(optim(par=c(about_smean[1],about_smean[2]), fn=make.NegLogLik)$par)
-}
-mean(estimate[,1])
-mean(estimate[,2])
+# ?optim
+# out<-list()
+# about_smean<-c(0,0)
+# estimate<-data.frame(matrix(0L, nrow=1, ncol=2))
+# 
+# for (j in c(1:10)){
+#    about_smean[1]<- rnorm(1, mean = log(mean(dataset$obs)), sd=2)
+#    about_smean[2]<- rnorm(1, mean = log(mean(dataset$obs)), sd=2)
+#   
+#   #about_smean[1]<- runif(1, min = log(mean(dataset$obs))/2, max = 3*log(mean(dataset$obs))/2)
+#   #about_smean[2]<- runif(1, min = log(mean(dataset$obs))/2, max = 3*log(mean(dataset$obs))/2)
+#   
+#   estimate[j,]<-exp(optim(par=c(about_smean[1],about_smean[2]), fn=make.NegLogLik)$par)
+# }
+# mean(estimate[,1])
+# mean(estimate[,2])
+# 
+# 
+# ?runif
+# (out[[1]][1]+out[[2]][1]+out[[3]][1]+out[[4]][1]+out[[5]][1])/5
 
 
-?runif
-(out[[1]][1]+out[[2]][1]+out[[3]][1]+out[[4]][1]+out[[5]][1])/5
